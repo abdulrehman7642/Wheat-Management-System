@@ -1,3 +1,4 @@
+import { logAction } from "@/app/lib/audit";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/app/lib/prisma";
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
       },
       { maxWait: 15000, timeout: 20000 }
     );
-
+await logAction(session.userId, "create", "expense", result.id, result);
     return NextResponse.json(result);
   } catch (e) {
     console.error(e);

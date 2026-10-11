@@ -19,6 +19,11 @@ type LedgerEntry = {
 
 const fmt = (n: number) => new Intl.NumberFormat("en-PK").format(Math.round(n));
 
+// Supplier ledger: positive balance = we owe the supplier = Cr
+function drCr(balance: number) {
+  return balance >= 0 ? "Cr" : "Dr";
+}
+
 export default function SupplierLedgerPage() {
   const params = useParams();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
@@ -152,7 +157,7 @@ export default function SupplierLedgerPage() {
                     <td className="text-right">{Number(e.debit) > 0 ? fmt(Number(e.debit)) : "-"}</td>
                     <td className="text-right">{Number(e.credit) > 0 ? fmt(Number(e.credit)) : "-"}</td>
                     <td className="text-right font-semibold" style={{ color: "var(--tx-primary)" }}>
-                      {fmt(Math.abs(Number(e.balance)))} {Number(e.balance) >= 0 ? "Dr" : "Cr"}
+                      {fmt(Math.abs(Number(e.balance)))} {drCr(Number(e.balance))}
                     </td>
                   </tr>
                 ))}
@@ -173,7 +178,7 @@ export default function SupplierLedgerPage() {
                     <td className="text-right px-4 py-3 font-mono text-sm">{fmt(totalDebit)}</td>
                     <td className="text-right px-4 py-3 font-mono text-sm">{fmt(totalCredit)}</td>
                     <td className="text-right px-4 py-3 font-mono text-sm font-semibold" style={{ color: "var(--tx-primary)" }}>
-                      {fmt(Math.abs(closingBalance))} {closingBalance >= 0 ? "Dr" : "Cr"}
+                      {fmt(Math.abs(closingBalance))} {drCr(closingBalance)}
                     </td>
                   </tr>
                 </tfoot>

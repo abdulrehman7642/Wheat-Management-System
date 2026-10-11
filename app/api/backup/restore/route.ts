@@ -1,3 +1,4 @@
+import { logAction } from "@/app/lib/audit";
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { getSession } from "@/app/lib/session";
@@ -61,13 +62,25 @@ export async function POST(request: Request) {
         if (data.transport?.length) {
           await tx.transport.createMany({ data: data.transport });
         }
-        if (data.expenses?.length) {
+                if (data.expenses?.length) {
           await tx.expenses.createMany({ data: data.expenses });
+        }
+
+        // Reset ID counters so new rows do not clash with restored IDs
+        const tables = [
+          "suppliers", "customers", "purchases", "sales",
+          "inventory_transactions", "payments", "ledger_entries",
+          "labor", "transport", "expenses",
+        ];
+        for (const t of tables) {
+          await tx.$executeRawUnsafe(
+            `SELECT setval(pg_get_serial_sequence('${t}', 'id'), COALESCE((SELECT MAX(id) FROM ${t}), 1), (SELECT COUNT(*) > 0 FROM ${t}))`
+          );
         }
       },
       { maxWait: 30000, timeout: 60000 }
     );
-
+await logAction(session.userId, "restore", "backup", 0);
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

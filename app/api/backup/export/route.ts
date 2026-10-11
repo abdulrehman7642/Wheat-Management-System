@@ -1,3 +1,4 @@
+import { logAction } from "@/app/lib/audit";
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { getSession } from "@/app/lib/session";
@@ -76,7 +77,7 @@ export async function GET() {
       settings,
     },
   };
-
+await logAction(session.userId, "backup_export", "backup", 0);
   const json = JSON.stringify(jsonSafe(backup), null, 2);
   const fileName = `malik-yaseen-backup-${new Date().toISOString().slice(0, 10)}.json`;
 

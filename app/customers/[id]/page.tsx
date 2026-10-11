@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import AppLayout from "../../components/AppLayout";
 import { Card, SectionHeader } from "../../components/ui";
 
@@ -79,13 +80,22 @@ export default function CustomerLedgerPage() {
           title={customer ? `${customer.name} — Ledger` : "Customer Ledger"}
           subtitle={customer ? `${customer.code} · ${customer.city || ""}` : ""}
           action={
-            <button
-              onClick={() => setEditing(!editing)}
-              className="text-sm px-4 py-2 rounded-sm font-mono transition-colors"
-              style={{ border: "1px solid var(--bd)", color: "var(--tx-muted)" }}
-            >
-              {editing ? "Cancel" : "Edit"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditing(!editing)}
+                className="text-sm px-4 py-2 rounded-sm font-mono transition-colors"
+                style={{ border: "1px solid var(--bd)", color: "var(--tx-muted)" }}
+              >
+                {editing ? "Cancel" : "Edit"}
+              </button>
+              <Link
+                href={`/customers/${params.id}/print`}
+                target="_blank"
+                className="bg-[#C9A227] hover:bg-[#E8C84A] text-[#0A1628] font-semibold text-sm px-4 py-2 rounded-sm transition-colors font-mono tracking-wide"
+              >
+                Print / PDF
+              </Link>
+            </div>
           }
         />
 

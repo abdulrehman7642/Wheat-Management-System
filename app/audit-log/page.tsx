@@ -15,6 +15,7 @@ type LogRow = {
 
 export default function AuditLogPage() {
   const [rows, setRows] = useState<LogRow[]>([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/audit-logs")
@@ -22,10 +23,28 @@ export default function AuditLogPage() {
       .then(setRows);
   }, []);
 
+  const q = search.toLowerCase();
+  const filtered = rows.filter(
+    (r) =>
+      r.user.toLowerCase().includes(q) ||
+      r.action.toLowerCase().includes(q) ||
+      r.record_type.toLowerCase().includes(q)
+  );
+
+  const inputStyle = { background: "var(--bg-input)", border: "1px solid var(--bd)", color: "var(--tx-primary)" };
+
   return (
     <AppLayout title="Audit Log" subtitle="">
       <div className="fade-in">
         <SectionHeader title="Audit Log" subtitle="Recent activity across the system" />
+
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search user, action, record..."
+          className="w-full rounded-sm px-3 py-2 text-sm focus:outline-none font-mono mb-4"
+          style={inputStyle}
+        />
 
         <Card>
           <div className="overflow-x-auto">
@@ -40,16 +59,16 @@ export default function AuditLogPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {filtered.map((r) => (
                   <tr key={r.id}>
                     <td className="whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
                     <td style={{ color: "var(--tx-primary)" }}>{r.user}</td>
-                    <td className="capitalize text-[#C9A227]">{r.action}</td>
-                    <td className="capitalize">{r.record_type}</td>
-                    <td>{r.record_id}</td>
+                    <td className="capitalize text-[#C9A227]">{r.action.replace(/_/g, " ")}</td>
+                    <td className="capitalize">{r.record_type.replace(/_/g, " ")}</td>
+                    <td>{r.record_id || "-"}</td>
                   </tr>
                 ))}
-                {rows.length === 0 && (
+                {filtered.length === 0 && (
                   <tr>
                     <td colSpan={5} className="p-6 text-center" style={{ color: "var(--tx-muted)" }}>
                       Koi activity record nahi mila.

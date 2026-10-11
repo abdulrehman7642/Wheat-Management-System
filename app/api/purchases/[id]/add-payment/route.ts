@@ -1,3 +1,4 @@
+import { logAction } from "@/app/lib/audit";
 import { canVoidOrSettle } from "@/app/lib/permissions";
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
@@ -86,7 +87,7 @@ export async function POST(
       },
       { maxWait: 15000, timeout: 20000 }
     );
-
+await logAction(session.userId, "add_payment", "purchase", purchaseId, { amount });
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

@@ -1,3 +1,4 @@
+import { logAction } from "@/app/lib/audit";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -44,6 +45,6 @@ export async function POST(request: Request) {
     where: { id: user.id },
     data: { last_login_at: new Date() },
   });
-
+await logAction(user.id, "login", "user", user.id);
   return NextResponse.json({ success: true });
 }

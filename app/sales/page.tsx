@@ -242,7 +242,7 @@ export default function SalesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search invoice, customer..."
-            className={`${inputClass} flex-1 min-w-[200px]`}
+            className={`${inputClass} flex-1 min-w-50`}
             style={inputStyle}
           />
         </div>
@@ -292,6 +292,14 @@ export default function SalesPage() {
                           >
                             PDF
                           </Link>
+                                                    {canAct && s.status !== "voided" && (
+                            <Link
+                              href={`/sales/${s.id}/edit`}
+                              className="font-mono text-[10px] text-sky-400 border border-sky-700/40 hover:border-sky-500/60 px-2 py-0.5 rounded-sm transition-colors"
+                            >
+                              Edit
+                            </Link>
+                          )}
                           {canAct && s.status !== "voided" && Number(s.remaining_amount) > 0 && (
                             <>
                               <button
