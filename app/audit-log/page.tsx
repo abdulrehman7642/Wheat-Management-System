@@ -47,7 +47,7 @@ export default function AuditLogPage() {
         />
 
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full ledger-table">
               <thead>
                 <tr>

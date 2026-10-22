@@ -204,7 +204,7 @@ export default function PurchasesPage() {
         {showForm && (
           <form
             onSubmit={handleSubmit}
-            className="mb-6 rounded-sm p-6"
+            className="mb-6 rounded-sm p-4 sm:p-6"
             style={{ border: "1px solid rgba(201,162,39,0.3)", background: "var(--bg-card)" }}
           >
             <h3 className="font-display text-lg font-semibold mb-4" style={{ color: "var(--tx-primary)" }}>
@@ -293,7 +293,7 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button type="submit" className="bg-[#C9A227] hover:bg-[#E8C84A] text-[#0A1628] font-semibold text-sm px-6 py-2 rounded-sm font-mono tracking-wide transition-colors">
                 Save Purchase
               </button>
@@ -309,13 +309,13 @@ export default function PurchasesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search voucher, supplier..."
-            className={`${inputClass} flex-1 min-w-50`}
+            className={`${inputClass} flex-1 min-w-0 sm:min-w-[200px]`}
             style={inputStyle}
           />
         </div>
 
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full ledger-table">
               <thead>
                 <tr>

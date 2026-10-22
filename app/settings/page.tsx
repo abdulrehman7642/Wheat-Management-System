@@ -167,7 +167,7 @@ export default function SettingsPage() {
               Voucher Numbering
             </h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full ledger-table">
               <thead>
                 <tr>

@@ -76,3 +76,22 @@ body {
 }
 .ledger-table tr:hover td { background-color: rgba(201, 162, 39, 0.04); }
 .ledger-table tfoot td { background: var(--bg-card); }
+@media screen {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  button, a, input, select, textarea { max-width: 100%; }
+  button, [role="button"] { min-height: 2.75rem; }
+  input, select, textarea { min-height: 2.75rem; }
+  .table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-scroll > table { min-width: max-content; }
+}
+
+@media (max-width: 639px) {
+  .ledger-table th { padding: 0.65rem 0.75rem; }
+  .ledger-table td { padding: 0.65rem 0.75rem; }
+}

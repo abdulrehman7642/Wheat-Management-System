@@ -50,7 +50,7 @@ export default function PurchasePrintPage() {
   );
 
   return (
-    <div className="bg-white text-black p-10 max-w-3xl mx-auto text-sm">
+    <div className="bg-white text-black p-4 sm:p-10 print:p-10 max-w-3xl mx-auto text-sm">
       <div id="print-area" className="bg-white text-black">
         <PrintHeader
           title="Wheat Purchase Voucher"
@@ -64,7 +64,7 @@ export default function PurchasePrintPage() {
           }
         />
 
-        <div className="mb-6 grid grid-cols-3 gap-4 bg-gray-50 rounded p-4">
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 print:grid-cols-3 bg-gray-50 rounded p-4">
           <div>
             <p className="text-gray-400 text-xs uppercase tracking-wide">Supplier</p>
             <p className="font-semibold">{purchase.suppliers.name}</p>

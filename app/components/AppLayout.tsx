@@ -102,6 +102,11 @@ export default function AppLayout({
     setMobileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
@@ -115,7 +120,7 @@ export default function AppLayout({
         <WheatLogo />
         <button
           onClick={() => setMobileOpen(false)}
-          className="md:hidden text-xl leading-none"
+          aria-label="Close navigation" className="md:hidden min-h-11 min-w-11 text-xl leading-none"
           style={{ color: "var(--tx-muted)" }}
         >
           ✕
@@ -129,7 +134,7 @@ export default function AppLayout({
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition"
+              onClick={() => setMobileOpen(false)} className="flex min-h-11 items-center gap-3 px-5 py-2.5 text-sm font-medium transition"
               style={{
                 background: active ? "var(--sidebar-active)" : "transparent",
                 color: active ? "var(--gold)" : "var(--tx-muted)",
@@ -172,12 +177,12 @@ export default function AppLayout({
     <div className="min-h-screen flex" style={{ background: "var(--bg-page)" }}>
       {/* Mobile top bar */}
       <div
-        className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 border-b"
+        className="md:hidden fixed top-0 left-0 right-0 z-30 flex min-h-16 items-center justify-between px-3 sm:px-4 py-3 border-b"
         style={{ background: "var(--bg-sidebar)", borderColor: "var(--bd)" }}
       >
         <button
           onClick={() => setMobileOpen(true)}
-          className="text-2xl leading-none px-1"
+          aria-label="Open navigation" className="min-h-11 min-w-11 text-2xl leading-none px-1"
           style={{ color: "var(--tx-primary)" }}
         >
           ☰
@@ -203,8 +208,8 @@ export default function AppLayout({
         {sidebarContent}
       </aside>
 
-      <main className="flex-1 p-4 sm:p-8 overflow-x-auto pt-20 md:pt-8 w-full md:w-auto">
-        {action && <div className="flex justify-end mb-6">{action}</div>}
+      <main className="min-w-0 flex-1 overflow-x-hidden p-3 sm:p-5 lg:p-8 pt-20 md:pt-8 w-full md:w-auto">
+        {action && <div className="mb-6 flex w-full justify-stretch sm:justify-end">{action}</div>}
         {children}
       </main>
     </div>

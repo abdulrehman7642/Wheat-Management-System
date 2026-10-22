@@ -35,7 +35,7 @@ export default function CashBookPage() {
         <SectionHeader title="Cash Book" subtitle="All cash payments and receipts" />
 
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full ledger-table">
               <thead>
                 <tr>

@@ -55,7 +55,7 @@ export default function StatementView({ kind, id }: { kind: "supplier" | "custom
   const dateInput = "border border-gray-300 rounded px-2 py-1 text-sm text-black bg-white";
 
   return (
-    <div className="bg-white text-black p-10 max-w-4xl mx-auto text-sm">
+    <div className="bg-white text-black p-4 sm:p-10 print:p-10 max-w-4xl mx-auto text-sm">
       <div className="print:hidden flex flex-wrap gap-4 items-end mb-6">
         <div>
           <label className="block text-xs text-gray-500 mb-1">From</label>

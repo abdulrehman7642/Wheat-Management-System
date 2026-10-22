@@ -92,7 +92,7 @@ export default function ExpensesPage() {
         {showForm && (
           <form
             onSubmit={handleSubmit}
-            className="mb-6 rounded-sm p-6"
+            className="mb-6 rounded-sm p-4 sm:p-6"
             style={{ border: "1px solid rgba(201,162,39,0.3)", background: "var(--bg-card)" }}
           >
             {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
@@ -126,7 +126,7 @@ export default function ExpensesPage() {
                 <input value={form.description} onChange={(e) => update("description", e.target.value)} className={inputClass} style={inputStyle} />
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button type="submit" className="bg-[#C9A227] hover:bg-[#E8C84A] text-[#0A1628] font-semibold text-sm px-6 py-2 rounded-sm font-mono tracking-wide transition-colors">
                 Save Expense
               </button>
@@ -138,7 +138,7 @@ export default function ExpensesPage() {
         )}
 
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full ledger-table">
               <thead>
                 <tr>

@@ -102,7 +102,7 @@ export default function CustomerLedgerPage() {
         {editing && (
           <form
             onSubmit={handleSave}
-            className="mb-6 rounded-sm p-6"
+            className="mb-6 rounded-sm p-4 sm:p-6"
             style={{ border: "1px solid rgba(201,162,39,0.3)", background: "var(--bg-card)" }}
           >
             {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
@@ -131,7 +131,7 @@ export default function CustomerLedgerPage() {
         )}
 
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full ledger-table">
               <thead>
                 <tr>

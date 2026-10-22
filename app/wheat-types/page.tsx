@@ -115,7 +115,7 @@ export default function WheatTypesPage() {
         {showForm && (
           <form
             onSubmit={handleSubmit}
-            className="mb-6 rounded-sm p-6"
+            className="mb-6 rounded-sm p-4 sm:p-6"
             style={{ border: "1px solid rgba(201,162,39,0.3)", background: "var(--bg-card)" }}
           >
             {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
@@ -138,7 +138,7 @@ export default function WheatTypesPage() {
                 </select>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button type="submit" className={goldBtn}>Save Wheat Type</button>
               <button type="button" onClick={() => setShowForm(false)} className="text-sm px-6 py-2 rounded-sm font-mono" style={{ border: "1px solid var(--bd)", color: "var(--tx-muted)" }}>
                 Cancel
@@ -150,7 +150,7 @@ export default function WheatTypesPage() {
         {editId !== null && (
           <form
             onSubmit={saveEdit}
-            className="mb-6 rounded-sm p-6"
+            className="mb-6 rounded-sm p-4 sm:p-6"
             style={{ border: "1px solid rgba(201,162,39,0.3)", background: "var(--bg-card)" }}
           >
             <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#C9A227] mb-3">Edit Wheat Type</p>
@@ -180,7 +180,7 @@ export default function WheatTypesPage() {
                 </select>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button type="submit" className={goldBtn}>Save Changes</button>
               <button type="button" onClick={() => setEditId(null)} className="text-sm px-6 py-2 rounded-sm font-mono" style={{ border: "1px solid var(--bd)", color: "var(--tx-muted)" }}>
                 Cancel
@@ -190,7 +190,7 @@ export default function WheatTypesPage() {
         )}
 
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full ledger-table">
               <thead>
                 <tr>

@@ -15,7 +15,7 @@ export function KpiCard({
 }) {
   return (
     <div
-      className="relative overflow-hidden rounded-sm p-5"
+      className="relative min-w-0 overflow-hidden rounded-sm p-4 sm:p-5"
       style={{ border: "1px solid var(--bd)", background: "var(--bg-card)" }}
     >
       <p
@@ -25,7 +25,7 @@ export function KpiCard({
         {label}
       </p>
       <p
-        className="font-display text-2xl font-semibold"
+        className="break-words font-display text-xl sm:text-2xl font-semibold"
         style={{ color: "var(--tx-primary)" }}
       >
         {value}
@@ -58,7 +58,7 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 export function CardHeader({ children }: { children: ReactNode }) {
   return (
     <div
-      className="flex items-center justify-between px-5 py-3.5"
+      className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3.5"
       style={{ borderBottom: "1px solid var(--bd)" }}
     >
       {children}
@@ -94,9 +94,9 @@ export function SectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
+    <div className="flex flex-col items-stretch justify-between gap-3 mb-5 sm:mb-6 sm:flex-row sm:items-start sm:gap-4">
       <div>
-        <h2 className="font-display text-2xl font-semibold" style={{ color: "var(--tx-primary)" }}>
+        <h2 className="break-words font-display text-xl sm:text-2xl font-semibold" style={{ color: "var(--tx-primary)" }}>
           {title}
         </h2>
         {subtitle && (
@@ -105,14 +105,14 @@ export function SectionHeader({
           </p>
         )}
       </div>
-      {action}
+      {action && <div className="w-full sm:w-auto sm:shrink-0">{action}</div>}
     </div>
   );
 }
 
 export function AddButton({ label, onClick, href }: { label: string; onClick?: () => void; href?: string }) {
   const className =
-    "inline-flex items-center gap-2 bg-[#C9A227] hover:bg-[#E8C84A] text-[#0A1628] font-semibold text-sm px-4 py-2 rounded-sm transition-colors duration-200 font-mono tracking-wide";
+    "inline-flex items-center gap-2 bg-[#C9A227] hover:bg-[#E8C84A] text-[#0A1628] font-semibold text-sm min-h-11 w-full justify-center sm:w-auto px-4 py-2 rounded-sm transition-colors duration-200 font-mono tracking-wide";
   if (href) {
     return (
       <a href={href} className={className}>

@@ -37,7 +37,7 @@ export default function OutstandingReportPage() {
                 Payable to Suppliers
               </h3>
             </div>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full ledger-table">
                 <thead>
                   <tr>
@@ -88,7 +88,7 @@ export default function OutstandingReportPage() {
                 Receivable from Customers
               </h3>
             </div>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full ledger-table">
                 <thead>
                   <tr>

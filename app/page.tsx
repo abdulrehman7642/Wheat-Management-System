@@ -128,7 +128,7 @@ export default function HomePage() {
               </h3>
               <span className="font-mono text-[10px] text-[#C9A227] uppercase tracking-wider">Wheat In</span>
             </CardHeader>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full ledger-table">
                 <thead>
                   <tr>
@@ -165,7 +165,7 @@ export default function HomePage() {
               </h3>
               <span className="font-mono text-[10px] text-[#C9A227] uppercase tracking-wider">Wheat Out</span>
             </CardHeader>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full ledger-table">
                 <thead>
                   <tr>
