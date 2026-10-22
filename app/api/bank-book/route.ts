@@ -10,22 +10,26 @@ export async function GET() {
 
   const payments = await prisma.payments.findMany({
     where: { method: "bank" },
+    include: { payment_reversal: true },
     orderBy: { id: "asc" },
   });
 
   let balance = 0;
-  const rows = payments.map((p) => {
+  const entries = payments.flatMap(p => [{ payment: p, reversal: false, date: p.date, id: `p-${p.id}` },
+    ...(p.payment_reversal ? [{ payment: p, reversal: true, date: p.payment_reversal.effective_date, id: `r-${p.payment_reversal.id}` }] : [])])
+    .sort((a, b) => a.date.getTime() - b.date.getTime() || a.id.localeCompare(b.id));
+  const rows = entries.map(({ payment: p, reversal, date, id }) => {
     const isSupplierPayment = p.party_type === "supplier";
-    const out = isSupplierPayment ? Number(p.amount) : 0;
-    const inAmt = isSupplierPayment ? 0 : Number(p.amount);
+    const out = reversal ? (isSupplierPayment ? 0 : Number(p.amount)) : (isSupplierPayment ? Number(p.amount) : 0);
+    const inAmt = reversal ? (isSupplierPayment ? Number(p.amount) : 0) : (isSupplierPayment ? 0 : Number(p.amount));
     balance += inAmt - out;
 
     return {
-      id: p.id,
-      voucher_no: p.voucher_no,
-      date: p.date,
+      id,
+      voucher_no: reversal ? p.payment_reversal!.voucher_no : p.voucher_no,
+      date,
       description:
-        p.description ||
+        (reversal ? `Cancellation of ${p.voucher_no}` : p.description) ||
         `${isSupplierPayment ? "Payment to supplier" : "Received from customer"}`,
       in: inAmt,
       out,

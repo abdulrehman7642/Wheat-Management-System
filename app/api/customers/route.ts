@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/app/lib/prisma";
 import { getSession } from "@/app/lib/session";
+import { acquireFinancialLock } from "@/app/lib/financialLock";
 
 const customerSchema = z.object({
   code: z.string().min(1),
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
   try {
     const customer = await prisma.$transaction(
       async (tx) => {
+        await acquireFinancialLock(tx);
         const created = await tx.customers.create({ data: parsed.data });
 
         const amount = Math.abs(Number(parsed.data.opening_balance));

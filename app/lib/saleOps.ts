@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { Tx } from "./purchaseOps";
+import { acquireFinancialLock } from "./financialLock";
+import { assertInvoiceHasNoTrackedPayments, postTrackedPayment } from "./paymentPosting";
 
 export const saleSchema = z.object({
   date: z.string(),
@@ -20,6 +22,7 @@ export async function createSaleTx(
   userId: number | undefined,
   carriedReceived?: number
 ) {
+  await acquireFinancialLock(tx);
   const lastInv = await tx.inventory_transactions.findFirst({
     where: { wheat_type_id: d.wheat_type_id },
     orderBy: { id: "desc" },
@@ -59,7 +62,7 @@ export async function createSaleTx(
   if (carried === null && d.received_amount > totalAmount) {
     throw new Error("Received amount total se zyada nahi ho sakti.");
   }
-  const receivedNow = carried !== null ? Math.min(carried, totalAmount) : d.received_amount;
+  const receivedNow = carried !== null ? Math.min(carried, totalAmount) : 0;
   const remaining = totalAmount - receivedNow;
 
   const docNum = await tx.document_numbering.update({
@@ -128,43 +131,15 @@ export async function createSaleTx(
   });
 
   if (carried === null && d.received_amount > 0) {
-    const payNum = await tx.document_numbering.update({
-      where: { doc_type: "cash_payment" },
-      data: { current_number: { increment: 1 } },
-    });
-    const payVoucher = `${payNum.prefix}-${payNum.current_number}`;
-
-    await tx.payments.create({
-      data: {
-        voucher_no: payVoucher,
-        date: new Date(d.date),
-        party_type: "customer",
-        party_id: d.customer_id,
-        amount: d.received_amount,
-        method: "cash",
-        description: "Received with " + voucherNo,
-        created_by: userId,
-      },
-    });
-
-    await tx.ledger_entries.create({
-      data: {
-        date: new Date(d.date),
-        account_type: "customer",
-        account_id: d.customer_id,
-        voucher_no: payVoucher,
-        description: "Cash Received - " + voucherNo,
-        debit: 0,
-        credit: d.received_amount,
-        balance: afterSale - d.received_amount,
-        ref_type: "payment",
-        ref_id: sale.id,
-        created_by: userId,
-      },
-    });
+    if (!userId) throw new Error("Payment creator is required.");
+    await postTrackedPayment(tx, { date: new Date(d.date), partyType: "customer", partyId: d.customer_id,
+      amount: d.received_amount, method: "cash", description: "Received with " + voucherNo,
+      userId, sourcePath: "sale_initial", target: { kind: "sale", id: sale.id } });
   }
 
-  return sale;
+  return d.received_amount > 0 && carried === null
+    ? tx.sales.findUniqueOrThrow({ where: { id: sale.id } })
+    : sale;
 }
 
 export async function voidSaleTx(
@@ -173,6 +148,8 @@ export async function voidSaleTx(
   userId: number | undefined,
   reason: string
 ) {
+  await acquireFinancialLock(tx);
+  await assertInvoiceHasNoTrackedPayments(tx, "sale", saleId);
   const sale = await tx.sales.findUnique({ where: { id: saleId } });
   if (!sale) throw new Error("Sale not found.");
   if (sale.status === "voided") throw new Error("Already voided.");

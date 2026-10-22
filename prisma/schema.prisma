@@ -159,20 +159,22 @@ model labor {
 }
 
 model ledger_entries {
-  id           BigInt   @id @default(autoincrement())
-  date         DateTime @db.Date
-  account_type String   @db.VarChar(20)
-  account_id   Int
-  voucher_no   String   @db.VarChar(30)
-  description  String
-  debit        Decimal  @default(0) @db.Decimal(14, 2)
-  credit       Decimal  @default(0) @db.Decimal(14, 2)
-  balance      Decimal  @db.Decimal(16, 2)
-  ref_type     String   @db.VarChar(20)
-  ref_id       Int?
-  created_by   Int?
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
-  users        users?   @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                       BigInt             @id @default(autoincrement())
+  date                     DateTime           @db.Date
+  account_type             String             @db.VarChar(20)
+  account_id               Int
+  voucher_no               String             @db.VarChar(30)
+  description              String
+  debit                    Decimal            @default(0) @db.Decimal(14, 2)
+  credit                   Decimal            @default(0) @db.Decimal(14, 2)
+  balance                  Decimal            @db.Decimal(16, 2)
+  ref_type                 String             @db.VarChar(20)
+  ref_id                   Int?
+  created_by               Int?
+  created_at               DateTime           @default(now()) @db.Timestamptz(6)
+  users                    users?             @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  original_payment_posting payment_postings?  @relation("OriginalPaymentLedger")
+  payment_reversal         payment_reversals? @relation("ReversalPaymentLedger")
 
   @@index([account_type, account_id, date], map: "idx_ledger_account_date")
   @@index([ref_type, ref_id], map: "idx_ledger_ref")
@@ -180,14 +182,27 @@ model ledger_entries {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model payment_allocations {
-  id               Int      @id @default(autoincrement())
-  payment_id       Int
-  ref_type         String   @db.VarChar(20)
-  ref_id           Int
-  allocated_amount Decimal  @db.Decimal(14, 2)
-  payments         payments @relation(fields: [payment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                  Int                           @id @default(autoincrement())
+  payment_id          Int
+  ref_type            String                        @db.VarChar(20)
+  ref_id              Int
+  allocated_amount    Decimal                       @db.Decimal(14, 2)
+  payments            payments                      @relation(fields: [payment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payment_posting_id  BigInt?
+  purchase_id         Int?
+  sale_id             Int?
+  tracking_version    Int?                          @db.SmallInt
+  created_at          DateTime?                     @db.Timestamptz(6)
+  payment_posting     payment_postings?             @relation(fields: [payment_posting_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  purchase            purchases?                    @relation(fields: [purchase_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  sale                sales?                        @relation(fields: [sale_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  allocation_reversal payment_allocation_reversals?
 
   @@index([ref_type, ref_id], map: "idx_payment_allocations_ref")
+  @@index([payment_id], map: "idx_payment_allocations_payment")
+  @@index([payment_posting_id], map: "idx_payment_allocations_posting")
+  @@index([purchase_id], map: "idx_payment_allocations_purchase")
+  @@index([sale_id], map: "idx_payment_allocations_sale")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -209,6 +224,8 @@ model payments {
   created_by          Int?
   created_at          DateTime              @default(now()) @db.Timestamptz(6)
   payment_allocations payment_allocations[]
+  payment_posting     payment_postings?
+  payment_reversal    payment_reversals?
   bank_accounts       bank_accounts?        @relation(fields: [bank_account_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cash_accounts       cash_accounts?        @relation(fields: [cash_account_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users               users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -236,48 +253,50 @@ model purchase_bag_items {
 }
 
 model purchases {
-  id                    Int                  @id @default(autoincrement())
-  voucher_no            String               @unique @db.VarChar(30)
-  date                  DateTime             @db.Date
+  id                    Int                            @id @default(autoincrement())
+  voucher_no            String                         @unique @db.VarChar(30)
+  date                  DateTime                       @db.Date
   supplier_id           Int
   wheat_type_id         Int
   vehicle_id            Int?
   driver_id             Int?
-  book_no               String?              @db.VarChar(30)
-  lot_no                String?              @db.VarChar(30)
-  bag_count             Int                  @default(0)
-  plastic_bag_count     Int                  @default(0)
-  gross_weight_kg       Decimal              @db.Decimal(12, 2)
-  bags_weight_kg        Decimal              @default(0) @db.Decimal(12, 2)
-  extra_weight_kg       Decimal              @default(0) @db.Decimal(12, 2)
-  net_weight_kg         Decimal              @db.Decimal(12, 2)
-  maunds                Decimal              @db.Decimal(12, 4)
-  moisture_pct          Decimal?             @db.Decimal(5, 2)
-  rate_per_maund        Decimal              @db.Decimal(12, 2)
-  wheat_amount          Decimal              @db.Decimal(14, 2)
-  wheat_tax_amount      Decimal              @default(0) @db.Decimal(12, 2)
-  kanta_charges         Decimal              @default(0) @db.Decimal(12, 2)
-  unloading_charges     Decimal              @default(0) @db.Decimal(12, 2)
-  loading_charges       Decimal              @default(0) @db.Decimal(12, 2)
-  bags_amount           Decimal              @default(0) @db.Decimal(12, 2)
-  commission_amount     Decimal              @default(0) @db.Decimal(12, 2)
-  other_charges         Decimal              @default(0) @db.Decimal(12, 2)
-  total_amount          Decimal              @db.Decimal(14, 2)
-  paid_amount           Decimal              @default(0) @db.Decimal(14, 2)
-  remaining_amount      Decimal              @db.Decimal(14, 2)
+  book_no               String?                        @db.VarChar(30)
+  lot_no                String?                        @db.VarChar(30)
+  bag_count             Int                            @default(0)
+  plastic_bag_count     Int                            @default(0)
+  gross_weight_kg       Decimal                        @db.Decimal(12, 2)
+  bags_weight_kg        Decimal                        @default(0) @db.Decimal(12, 2)
+  extra_weight_kg       Decimal                        @default(0) @db.Decimal(12, 2)
+  net_weight_kg         Decimal                        @db.Decimal(12, 2)
+  maunds                Decimal                        @db.Decimal(12, 4)
+  moisture_pct          Decimal?                       @db.Decimal(5, 2)
+  rate_per_maund        Decimal                        @db.Decimal(12, 2)
+  wheat_amount          Decimal                        @db.Decimal(14, 2)
+  wheat_tax_amount      Decimal                        @default(0) @db.Decimal(12, 2)
+  kanta_charges         Decimal                        @default(0) @db.Decimal(12, 2)
+  unloading_charges     Decimal                        @default(0) @db.Decimal(12, 2)
+  loading_charges       Decimal                        @default(0) @db.Decimal(12, 2)
+  bags_amount           Decimal                        @default(0) @db.Decimal(12, 2)
+  commission_amount     Decimal                        @default(0) @db.Decimal(12, 2)
+  other_charges         Decimal                        @default(0) @db.Decimal(12, 2)
+  total_amount          Decimal                        @db.Decimal(14, 2)
+  paid_amount           Decimal                        @default(0) @db.Decimal(14, 2)
+  remaining_amount      Decimal                        @db.Decimal(14, 2)
   generated_description String?
-  status                String               @default("confirmed") @db.VarChar(20)
+  status                String                         @default("confirmed") @db.VarChar(20)
   void_reason           String?
   notes                 String?
   created_by            Int?
-  created_at            DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime             @default(now()) @db.Timestamptz(6)
+  created_at            DateTime                       @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                       @default(now()) @db.Timestamptz(6)
   purchase_bag_items    purchase_bag_items[]
-  users                 users?               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  drivers               drivers?             @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  suppliers             suppliers            @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  vehicles              vehicles?            @relation(fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  wheat_types           wheat_types          @relation(fields: [wheat_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payment_allocations   payment_allocations[]
+  allocation_reversals  payment_allocation_reversals[]
+  users                 users?                         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  drivers               drivers?                       @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  suppliers             suppliers                      @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicles              vehicles?                      @relation(fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  wheat_types           wheat_types                    @relation(fields: [wheat_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([supplier_id, date], map: "idx_purchases_supplier_date")
   @@index([vehicle_id], map: "idx_purchases_vehicle")
@@ -292,37 +311,39 @@ model roles {
 }
 
 model sales {
-  id                    Int         @id @default(autoincrement())
-  voucher_no            String      @unique @db.VarChar(30)
-  date                  DateTime    @db.Date
+  id                    Int                            @id @default(autoincrement())
+  voucher_no            String                         @unique @db.VarChar(30)
+  date                  DateTime                       @db.Date
   customer_id           Int
   wheat_type_id         Int
   vehicle_id            Int?
   driver_id             Int?
-  gross_weight_kg       Decimal?    @db.Decimal(12, 2)
-  bags_weight_kg        Decimal?    @default(0) @db.Decimal(12, 2)
-  net_weight_kg         Decimal     @db.Decimal(12, 2)
-  maunds                Decimal     @db.Decimal(12, 4)
-  rate_per_maund        Decimal     @db.Decimal(12, 2)
-  wheat_amount          Decimal     @db.Decimal(14, 2)
-  freight_amount        Decimal     @default(0) @db.Decimal(12, 2)
-  loading_charges       Decimal     @default(0) @db.Decimal(12, 2)
-  other_charges         Decimal     @default(0) @db.Decimal(12, 2)
-  total_amount          Decimal     @db.Decimal(14, 2)
-  received_amount       Decimal     @default(0) @db.Decimal(14, 2)
-  remaining_amount      Decimal     @db.Decimal(14, 2)
+  gross_weight_kg       Decimal?                       @db.Decimal(12, 2)
+  bags_weight_kg        Decimal?                       @default(0) @db.Decimal(12, 2)
+  net_weight_kg         Decimal                        @db.Decimal(12, 2)
+  maunds                Decimal                        @db.Decimal(12, 4)
+  rate_per_maund        Decimal                        @db.Decimal(12, 2)
+  wheat_amount          Decimal                        @db.Decimal(14, 2)
+  freight_amount        Decimal                        @default(0) @db.Decimal(12, 2)
+  loading_charges       Decimal                        @default(0) @db.Decimal(12, 2)
+  other_charges         Decimal                        @default(0) @db.Decimal(12, 2)
+  total_amount          Decimal                        @db.Decimal(14, 2)
+  received_amount       Decimal                        @default(0) @db.Decimal(14, 2)
+  remaining_amount      Decimal                        @db.Decimal(14, 2)
   generated_description String?
-  status                String      @default("confirmed") @db.VarChar(20)
+  status                String                         @default("confirmed") @db.VarChar(20)
   void_reason           String?
   notes                 String?
   created_by            Int?
-  created_at            DateTime    @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime    @default(now()) @db.Timestamptz(6)
-  users                 users?      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  customers             customers   @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  drivers               drivers?    @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  vehicles              vehicles?   @relation(fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  wheat_types           wheat_types @relation(fields: [wheat_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at            DateTime                       @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                       @default(now()) @db.Timestamptz(6)
+  users                 users?                         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payment_allocations   payment_allocations[]
+  allocation_reversals  payment_allocation_reversals[]
+  customers             customers                      @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  drivers               drivers?                       @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicles              vehicles?                      @relation(fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  wheat_types           wheat_types                    @relation(fields: [wheat_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([customer_id, date], map: "idx_sales_customer_date")
   @@index([wheat_type_id], map: "idx_sales_wheat_type")
@@ -381,25 +402,30 @@ model units {
 }
 
 model users {
-  id                     Int                      @id @default(autoincrement())
-  username               String                   @unique @db.VarChar(50)
-  password_hash          String
-  full_name              String?                  @db.VarChar(100)
-  role_id                Int
-  status                 String                   @default("active") @db.VarChar(20)
-  last_login_at          DateTime?                @db.Timestamptz(6)
-  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
-  audit_logs             audit_logs[]
-  bank_transactions      bank_transactions[]
-  expenses               expenses[]
-  inventory_transactions inventory_transactions[]
-  labor                  labor[]
-  ledger_entries         ledger_entries[]
-  payments               payments[]
-  purchases              purchases[]
-  sales                  sales[]
-  transport              transport[]
-  roles                  roles                    @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                         Int                      @id @default(autoincrement())
+  username                   String                   @unique @db.VarChar(50)
+  password_hash              String
+  full_name                  String?                  @db.VarChar(100)
+  role_id                    Int
+  status                     String                   @default("active") @db.VarChar(20)
+  last_login_at              DateTime?                @db.Timestamptz(6)
+  created_at                 DateTime                 @default(now()) @db.Timestamptz(6)
+  audit_logs                 audit_logs[]
+  bank_transactions          bank_transactions[]
+  expenses                   expenses[]
+  inventory_transactions     inventory_transactions[]
+  labor                      labor[]
+  ledger_entries             ledger_entries[]
+  payments                   payments[]
+  purchases                  purchases[]
+  sales                      sales[]
+  transport                  transport[]
+  payment_postings           payment_postings[]
+  payment_reversals          payment_reversals[]
+  accounting_periods_created accounting_periods[]     @relation("AccountingPeriodCreator")
+  accounting_periods_closed  accounting_periods[]     @relation("AccountingPeriodCloser")
+  financial_controls_updated financial_controls[]
+  roles                      roles                    @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model vehicles {
@@ -423,4 +449,112 @@ model wheat_types {
   purchases              purchases[]
   sales                  sales[]
   units                  units?                   @relation(fields: [default_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model payment_postings {
+  id                         BigInt                @id @default(autoincrement())
+  payment_id                 Int                   @unique
+  original_ledger_entry_id   BigInt                @unique
+  payment_date               DateTime              @db.Date
+  party_type                 String                @db.VarChar(20)
+  party_id                   Int
+  method                     String                @db.VarChar(20)
+  amount                     Decimal               @db.Decimal(14, 2)
+  allocated_amount           Decimal               @db.Decimal(14, 2)
+  advance_amount             Decimal               @db.Decimal(14, 2)
+  source_path                String                @db.VarChar(30)
+  tracking_version           Int                   @db.SmallInt
+  bank_reconciliation_status String                @default("not_applicable") @db.VarChar(20)
+  created_by                 Int
+  created_at                 DateTime              @default(now()) @db.Timestamptz(6)
+  payment                    payments              @relation(fields: [payment_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  original_ledger_entry      ledger_entries        @relation("OriginalPaymentLedger", fields: [original_ledger_entry_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user                       users                 @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  payment_allocations        payment_allocations[]
+  payment_reversal           payment_reversals?
+
+  @@index([party_type, party_id, payment_date], map: "idx_payment_postings_party_date")
+}
+
+model payment_reversals {
+  id                         BigInt                         @id @default(autoincrement())
+  payment_posting_id         BigInt                         @unique
+  original_payment_id        Int                            @unique
+  reversal_ledger_entry_id   BigInt                         @unique
+  voucher_sequence           BigInt                         @unique
+  voucher_no                 String                         @unique @db.VarChar(30)
+  idempotency_key            String                         @unique @db.Uuid
+  effective_date             DateTime                       @db.Date
+  original_payment_period_id Int
+  effective_period_id        Int
+  reason                     String
+  amount                     Decimal                        @db.Decimal(14, 2)
+  reversed_allocated_amount  Decimal                        @db.Decimal(14, 2)
+  reversed_advance_amount    Decimal                        @db.Decimal(14, 2)
+  created_by                 Int
+  created_at                 DateTime                       @default(now()) @db.Timestamptz(6)
+  payment_posting            payment_postings               @relation(fields: [payment_posting_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  original_payment           payments                       @relation(fields: [original_payment_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  reversal_ledger_entry      ledger_entries                 @relation("ReversalPaymentLedger", fields: [reversal_ledger_entry_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  original_payment_period    accounting_periods             @relation("OriginalPaymentPeriod", fields: [original_payment_period_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  effective_period           accounting_periods             @relation("EffectiveReversalPeriod", fields: [effective_period_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user                       users                          @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  allocation_reversals       payment_allocation_reversals[]
+
+  @@index([effective_date], map: "idx_payment_reversals_date")
+}
+
+model payment_allocation_reversals {
+  id                    BigInt              @id @default(autoincrement())
+  payment_reversal_id   BigInt
+  payment_allocation_id Int                 @unique
+  purchase_id           Int?
+  sale_id               Int?
+  invoice_period_id     Int
+  reversed_amount       Decimal             @db.Decimal(14, 2)
+  created_at            DateTime            @default(now()) @db.Timestamptz(6)
+  payment_reversal      payment_reversals   @relation(fields: [payment_reversal_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  payment_allocation    payment_allocations @relation(fields: [payment_allocation_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  purchase              purchases?          @relation(fields: [purchase_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  sale                  sales?              @relation(fields: [sale_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  invoice_period        accounting_periods  @relation(fields: [invoice_period_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([payment_reversal_id, payment_allocation_id], map: "uq_payment_allocation_reversal_pair")
+  @@index([payment_reversal_id], map: "idx_payment_allocation_reversals_reversal")
+}
+
+model accounting_periods {
+  id                         Int                            @id @default(autoincrement())
+  name                       String                         @db.VarChar(80)
+  start_date                 DateTime                       @db.Date
+  end_date                   DateTime                       @db.Date
+  status                     String                         @default("open") @db.VarChar(20)
+  closed_at                  DateTime?                      @db.Timestamptz(6)
+  closed_by                  Int?
+  created_at                 DateTime                       @default(now()) @db.Timestamptz(6)
+  created_by                 Int
+  creator                    users                          @relation("AccountingPeriodCreator", fields: [created_by], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  closer                     users?                         @relation("AccountingPeriodCloser", fields: [closed_by], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  original_payment_reversals payment_reversals[]            @relation("OriginalPaymentPeriod")
+  effective_reversals        payment_reversals[]            @relation("EffectiveReversalPeriod")
+  allocation_reversals       payment_allocation_reversals[]
+
+  @@index([start_date, end_date], map: "idx_accounting_period_dates")
+  @@index([status, start_date], map: "idx_accounting_period_status")
+}
+
+model financial_controls {
+  id                           Int      @id
+  payment_cancellation_enabled Boolean  @default(false)
+  accounting_periods_required  Boolean  @default(true)
+  locking_protocol_version     Int      @default(1) @db.SmallInt
+  updated_by                   Int?
+  updated_at                   DateTime @default(now()) @db.Timestamptz(6)
+  user                         users?   @relation(fields: [updated_by], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+model payment_reversal_counters {
+  prefix         String   @id @db.VarChar(10)
+  current_number BigInt   @default(0)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
 }

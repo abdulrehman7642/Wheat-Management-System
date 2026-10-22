@@ -13,6 +13,10 @@ type Payment = {
   amount: string;
   method: string;
   description: string | null;
+  cancellation_status: "legacy" | "tracked" | "cancelled";
+  reversal: { voucher_no: string; effective_date: string; reason: string } | null;
+  can_cancel: boolean;
+  cancellation_block_reason: string | null;
 };
 
 const fmtRs = (n: number) => `Rs. ${new Intl.NumberFormat("en-PK").format(Math.round(n))}`;
@@ -23,6 +27,8 @@ export default function PaymentsPage() {
   const [customers, setCustomers] = useState<Party[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
+  const [role, setRole] = useState("");
+  const [cancelling, setCancelling] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -34,18 +40,39 @@ export default function PaymentsPage() {
   });
 
   async function loadData() {
-    const [payRes, sRes, cRes] = await Promise.all([
+    const [payRes, sRes, cRes, meRes] = await Promise.all([
       fetch("/api/payments"),
       fetch("/api/suppliers"),
       fetch("/api/customers"),
+      fetch("/api/auth/me"),
     ]);
     setPayments(await payRes.json());
     setSuppliers(await sRes.json());
     setCustomers(await cRes.json());
+    if (meRes.ok) setRole((await meRes.json()).role);
+  }
+
+  async function cancelPayment(payment: Payment) {
+    const reason = window.prompt("Cancellation reason (required). This corrects an erroneous entry; it is not a refund.");
+    if (!reason?.trim()) return;
+    setError(""); setCancelling(payment.id);
+    const res = await fetch(`/api/payments/${payment.id}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason.trim(), intent: "correction", idempotencyKey: crypto.randomUUID() }) });
+    const data = await res.json();
+    setCancelling(null);
+    if (!res.ok) { setError(data.error || "Payment cancellation failed."); return; }
+    await loadData();
   }
 
   useEffect(() => {
-    loadData();
+    void Promise.all([
+      fetch("/api/payments"), fetch("/api/suppliers"), fetch("/api/customers"), fetch("/api/auth/me"),
+    ]).then(async ([payRes, sRes, cRes, meRes]) => {
+      setPayments(await payRes.json());
+      setSuppliers(await sRes.json());
+      setCustomers(await cRes.json());
+      if (meRes.ok) setRole((await meRes.json()).role);
+    });
   }, []);
 
   function update(field: string, value: string) {
@@ -161,6 +188,7 @@ export default function PaymentsPage() {
         )}
 
         <Card>
+          {error && <p className="text-red-400 text-sm p-4">{error}</p>}
           <div className="overflow-x-auto">
             <table className="w-full ledger-table">
               <thead>
@@ -170,6 +198,8 @@ export default function PaymentsPage() {
                   <th>Type</th>
                   <th>Method</th>
                   <th className="text-right">Amount</th>
+                  <th>Status</th>
+                  {role === "owner" && <th>Action</th>}
                 </tr>
               </thead>
               <tbody>
@@ -182,6 +212,11 @@ export default function PaymentsPage() {
                     <td className="text-right font-semibold" style={{ color: "var(--tx-primary)" }}>
                       {fmtRs(Number(p.amount))}
                     </td>
+                    <td className="capitalize">{p.cancellation_status}{p.reversal ? ` (${p.reversal.voucher_no})` : ""}</td>
+                    {role === "owner" && <td>{p.can_cancel ?
+                      <button type="button" disabled={cancelling === p.id} onClick={() => cancelPayment(p)} className="text-red-400 text-xs underline disabled:opacity-50">
+                        {cancelling === p.id ? "Cancelling…" : "Cancel payment"}
+                      </button> : <span className="text-xs" title={p.cancellation_block_reason || undefined} style={{ color: "var(--tx-muted)" }}>—</span>}</td>}
                   </tr>
                 ))}
               </tbody>

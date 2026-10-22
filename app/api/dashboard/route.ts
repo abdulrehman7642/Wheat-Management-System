@@ -65,16 +65,18 @@ export async function GET(request: Request) {
   const todayPurchases = await prisma.purchases.findMany({ where: { date: { gte: rangeStart } } });
   const todaySales = await prisma.sales.findMany({ where: { date: { gte: rangeStart } } });
 
-  const cashPayments = await prisma.payments.findMany({ where: { method: "cash" } });
+  const cashPayments = await prisma.payments.findMany({ where: { method: "cash" }, include: { payment_reversal: true } });
   let cashBalance = 0;
   for (const p of cashPayments) {
     cashBalance += p.party_type === "supplier" ? -Number(p.amount) : Number(p.amount);
+    if (p.payment_reversal) cashBalance += p.party_type === "supplier" ? Number(p.amount) : -Number(p.amount);
   }
 
-  const bankPayments = await prisma.payments.findMany({ where: { method: "bank" } });
+  const bankPayments = await prisma.payments.findMany({ where: { method: "bank" }, include: { payment_reversal: true } });
   let bankBalance = 0;
   for (const p of bankPayments) {
     bankBalance += p.party_type === "supplier" ? -Number(p.amount) : Number(p.amount);
+    if (p.payment_reversal) bankBalance += p.party_type === "supplier" ? Number(p.amount) : -Number(p.amount);
   }
 
   const recentPurchases = await prisma.purchases.findMany({

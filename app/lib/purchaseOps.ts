@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { prisma } from "./prisma";
+import { acquireFinancialLock } from "./financialLock";
+import { assertInvoiceHasNoTrackedPayments, postTrackedPayment } from "./paymentPosting";
 
 export type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -30,6 +32,7 @@ export async function createPurchaseTx(
   userId: number | undefined,
   carriedPaid?: number
 ) {
+  await acquireFinancialLock(tx);
   let vehicleId: number | null = null;
   if (d.vehicle_no && d.vehicle_no.trim() !== "") {
     const vehicle = await tx.vehicles.upsert({
@@ -59,7 +62,7 @@ export async function createPurchaseTx(
   if (carried === null && d.paid_amount > totalAmount) {
     throw new Error("Paid amount total se zyada nahi ho sakti.");
   }
-  const paidNow = carried !== null ? Math.min(carried, totalAmount) : d.paid_amount;
+  const paidNow = carried !== null ? Math.min(carried, totalAmount) : 0;
   const remaining = totalAmount - paidNow;
 
   const docNum = await tx.document_numbering.update({
@@ -145,43 +148,15 @@ export async function createPurchaseTx(
   });
 
   if (carried === null && d.paid_amount > 0) {
-    const payNum = await tx.document_numbering.update({
-      where: { doc_type: "cash_payment" },
-      data: { current_number: { increment: 1 } },
-    });
-    const payVoucher = `${payNum.prefix}-${payNum.current_number}`;
-
-    await tx.payments.create({
-      data: {
-        voucher_no: payVoucher,
-        date: new Date(d.date),
-        party_type: "supplier",
-        party_id: d.supplier_id,
-        amount: d.paid_amount,
-        method: "cash",
-        description: "Paid with " + voucherNo,
-        created_by: userId,
-      },
-    });
-
-    await tx.ledger_entries.create({
-      data: {
-        date: new Date(d.date),
-        account_type: "supplier",
-        account_id: d.supplier_id,
-        voucher_no: payVoucher,
-        description: "Cash Paid - " + voucherNo,
-        debit: d.paid_amount,
-        credit: 0,
-        balance: afterPurchase - d.paid_amount,
-        ref_type: "payment",
-        ref_id: purchase.id,
-        created_by: userId,
-      },
-    });
+    if (!userId) throw new Error("Payment creator is required.");
+    await postTrackedPayment(tx, { date: new Date(d.date), partyType: "supplier", partyId: d.supplier_id,
+      amount: d.paid_amount, method: "cash", description: "Paid with " + voucherNo,
+      userId, sourcePath: "purchase_initial", target: { kind: "purchase", id: purchase.id } });
   }
 
-  return purchase;
+  return d.paid_amount > 0 && carried === null
+    ? tx.purchases.findUniqueOrThrow({ where: { id: purchase.id } })
+    : purchase;
 }
 
 export async function voidPurchaseTx(
@@ -190,6 +165,8 @@ export async function voidPurchaseTx(
   userId: number | undefined,
   reason: string
 ) {
+  await acquireFinancialLock(tx);
+  await assertInvoiceHasNoTrackedPayments(tx, "purchase", purchaseId);
   const purchase = await tx.purchases.findUnique({ where: { id: purchaseId } });
   if (!purchase) throw new Error("Purchase not found.");
   if (purchase.status === "voided") throw new Error("Already voided.");

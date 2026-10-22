@@ -2,6 +2,7 @@ import { logAction } from "@/app/lib/audit";
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { getSession } from "@/app/lib/session";
+import { acquireFinancialLock } from "@/app/lib/financialLock";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
   try {
     await prisma.$transaction(
       async (tx) => {
+        await acquireFinancialLock(tx);
         await tx.ledger_entries.deleteMany({});
         await tx.inventory_transactions.deleteMany({});
         await tx.payments.deleteMany({});
