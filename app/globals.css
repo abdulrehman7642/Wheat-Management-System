@@ -89,6 +89,16 @@ body {
     -webkit-overflow-scrolling: touch;
   }
   .table-scroll > table { min-width: max-content; }
+  .app-sidebar {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overscroll-behavior: contain;
+  }
+  .sidebar-navigation {
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @media (max-width: 639px) {

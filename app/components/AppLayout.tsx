@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: "◈", roles: ["owner", "accountant", "data_entry"] },
@@ -64,7 +64,7 @@ function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider border"
+      className="flex min-h-11 w-full items-center justify-center gap-1 px-2.5 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider border"
       style={{ borderColor: "var(--bd)", color: "var(--tx-muted)", background: "var(--bg-card)" }}
     >
       {theme === "dark" ? "☾ Dark" : "☀ Light"}
@@ -88,6 +88,9 @@ export default function AppLayout({
   const [role, setRole] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const wasMobileOpen = useRef(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -103,11 +106,49 @@ export default function AppLayout({
   }, [pathname]);
 
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    if (!mobileOpen) {
+      if (wasMobileOpen.current) {
+        requestAnimationFrame(() => menuButtonRef.current?.focus());
+        wasMobileOpen.current = false;
+      }
+      return;
+    }
+
+    wasMobileOpen.current = true;
+    const scrollY = window.scrollY;
+    const original = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+    };
+
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    requestAnimationFrame(() => closeButtonRef.current?.focus());
+
+    return () => {
+      document.body.style.overflow = original.overflow;
+      document.body.style.position = original.position;
+      document.body.style.top = original.top;
+      document.body.style.width = original.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
   }, [mobileOpen]);
 
   async function handleLogout() {
+    setMobileOpen(false);
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
   }
@@ -116,25 +157,28 @@ export default function AppLayout({
 
   const sidebarContent = (
     <>
-      <div className="p-5 border-b shrink-0 flex items-center justify-between" style={{ borderColor: "var(--bd)" }}>
+      <div className="flex shrink-0 items-center justify-between border-b px-4 py-4 pt-[calc(1rem+env(safe-area-inset-top))] md:p-5" style={{ borderColor: "var(--bd)" }}>
         <WheatLogo />
         <button
+          ref={closeButtonRef}
           onClick={() => setMobileOpen(false)}
-          aria-label="Close navigation" className="md:hidden min-h-11 min-w-11 text-xl leading-none"
+          aria-label="Close navigation"
+          className="min-h-11 min-w-11 text-xl leading-none md:hidden"
           style={{ color: "var(--tx-muted)" }}
         >
           ✕
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4">
+      <nav aria-label="Primary navigation" className="sidebar-navigation flex-1 min-h-0 overflow-y-auto overscroll-contain py-2 sm:py-3">
         {visibleItems.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => setMobileOpen(false)} className="flex min-h-11 items-center gap-3 px-5 py-2.5 text-sm font-medium transition"
+              onClick={() => setMobileOpen(false)}
+              className="flex min-h-11 items-center gap-3 px-4 py-2 text-sm font-medium transition sm:px-5 sm:py-2.5"
               style={{
                 background: active ? "var(--sidebar-active)" : "transparent",
                 color: active ? "var(--gold)" : "var(--tx-muted)",
@@ -148,7 +192,7 @@ export default function AppLayout({
         })}
       </nav>
 
-      <div className="p-4 border-t shrink-0 space-y-3" style={{ borderColor: "var(--bd)" }}>
+      <footer className="shrink-0 space-y-2.5 border-t px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:space-y-3 md:p-4" style={{ borderColor: "var(--bd)" }}>
         {username && (
           <p className="font-mono text-[10px]" style={{ color: "var(--tx-muted)" }}>
             {username} · <span className="capitalize text-[#C9A227]">{role?.replace("_", " ")}</span>
@@ -156,7 +200,8 @@ export default function AppLayout({
         )}
         <Link
           href="/change-password"
-          className="block w-full text-center px-4 py-2 rounded text-sm font-medium border"
+          onClick={() => setMobileOpen(false)}
+          className="flex min-h-11 w-full items-center justify-center rounded border px-4 py-2 text-center text-sm font-medium"
           style={{ borderColor: "var(--bd)", color: "var(--tx-muted)" }}
         >
           Change Password
@@ -164,23 +209,24 @@ export default function AppLayout({
         <ThemeToggle />
         <button
           onClick={handleLogout}
-          className="w-full px-4 py-2 rounded text-sm font-medium border"
+          className="min-h-11 w-full rounded border px-4 py-2 text-sm font-medium"
           style={{ borderColor: "var(--bd)", color: "var(--tx-muted)" }}
         >
           Logout
         </button>
-      </div>
+      </footer>
     </>
   );
 
   return (
-    <div className="min-h-screen flex" style={{ background: "var(--bg-page)" }}>
+    <div className="flex min-h-screen min-w-0" style={{ background: "var(--bg-page)" }}>
       {/* Mobile top bar */}
       <div
         className="md:hidden fixed top-0 left-0 right-0 z-30 flex min-h-16 items-center justify-between px-3 sm:px-4 py-3 border-b"
         style={{ background: "var(--bg-sidebar)", borderColor: "var(--bd)" }}
       >
         <button
+          ref={menuButtonRef}
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation" className="min-h-11 min-w-11 text-2xl leading-none px-1"
           style={{ color: "var(--tx-primary)" }}
@@ -201,7 +247,7 @@ export default function AppLayout({
 
       {/* Sidebar: desktop sticky, mobile slide-in drawer */}
       <aside
-        className={`w-64 md:w-60 h-screen flex flex-col shrink-0 border-r fixed md:sticky top-0 z-50 transition-transform duration-200 ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        className={`app-sidebar fixed top-0 z-50 flex w-[min(16rem,calc(100vw-1rem))] shrink-0 flex-col border-r transition-transform duration-200 md:sticky md:w-60 ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         style={{ background: "var(--bg-sidebar)", borderColor: "var(--bd)" }}
       >
