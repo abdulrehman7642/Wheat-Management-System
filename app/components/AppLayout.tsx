@@ -17,6 +17,7 @@ const navItems = [
   { href: "/expenses", label: "Expenses", icon: "⊖", roles: ["owner", "accountant"] },
   { href: "/wheat-types", label: "Wheat Types", icon: "⊞", roles: ["owner", "accountant"] },
   { href: "/reports", label: "Reports", icon: "▤", roles: ["owner", "accountant"] },
+  { href: "/company-growth", label: "Company Growth", icon: "↗", roles: ["owner"] },
   { href: "/labor", label: "Labor", icon: "⚒", roles: ["owner", "accountant"] },
   { href: "/transport", label: "Transport", icon: "⛟", roles: ["owner", "accountant"] },
   { href: "/bags", label: "Bags", icon: "◰", roles: ["owner", "accountant"] },
